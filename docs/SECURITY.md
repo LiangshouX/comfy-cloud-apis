@@ -61,14 +61,18 @@ ComfyUI 的工作流是明文 JSON。`api_key` 输入框里填了 Key，**导出
 
 ## 4. 代码审计结论（2026-11-13）
 
-对社区包 `MeteorAndy/comfyui-byokey`（master 分支）做了逐文件扫描，
+对社区包 `MeteorAndy/comfyui-byokey`（master 分支，2026-11-13 拉取复核）做了逐文件扫描，
 作为"自己写 vs 用现成"的决策依据。记录在此供对照。
+
+**规模**：27 个 `.py` 文件 / 6,871 行 / 37 个节点类 / 覆盖 20+ 家厂商 API 域名。
 
 **干净的部分**：
 
 - 全仓**无** `eval` / `exec` / `__import__` / `subprocess` / `os.system` / `ctypes` / `pickle.loads`
-- 硬编码域名**全部是各厂商自己的 API 主机**，无第三方回传域名
-- **不读任何环境变量**、**不写任何文件**
+- 硬编码域名**全部是各厂商自己的 API 主机**（`api.minimax.chat` / `ark.cn-beijing.volces.com` /
+  `dashscope.aliyuncs.com` / `api.klingai.com` / `api.openai.com` 等），**无第三方回传域名**
+- **不读任何环境变量**（全仓无 `getenv` / `os.environ`）
+- **不写任何配置或凭据文件**——唯一的写操作是用 `av` 把成片封装成输出产物
 - import 仅 `PIL / aiohttp / asyncio / av / base64 / comfy_api / concurrent / io / json / logging / numpy / torch / uuid`，
   全部 ComfyUI 自带，**没有隐藏的 pip install**
 
@@ -78,7 +82,10 @@ ComfyUI 的工作流是明文 JSON。`api_key` 输入框里填了 Key，**导出
 2. **它的 MiniMax 节点不是 H3** —— 实现的是 V1 Hailuo 契约
    （`/v1/video_generation`、`T2V-01`/`I2V-01`、顶层 `prompt`、三段式取文件），
    与 H3 的 V2 协议不兼容。
-3. **下载成片时把 `Authorization` 头一起发给了 CDN 下载地址** —— Key 会出现在第三方 CDN 的请求日志里。
+3. **下载成片时把 `Authorization` 头一起发给了 CDN 下载地址** ——
+   `nodes_minimax.py` 里是 `download_video_output(download_url, headers=headers, ...)`，
+   而 `headers` 含 `Authorization: Bearer <key>`，`download_url` 是厂商 CDN 域名。
+   Key 会因此出现在第三方 CDN 的请求日志里。
 
 ---
 
