@@ -1,0 +1,19 @@
+[project]
+name = "comfy-cloud-apis"
+version = "0.1.0"
+description = "ComfyUI 节点：直连 MiniMax H3 / Seedance / 通义万相等云端视频生成 API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "LiangshouX" }]
+keywords = ["comfyui", "video-generation", "api", "minimax", "seedance", "wan"]
+
+[project.urls]
+Homepage = "https://github.com/LiangshouX/comfy-cloud-apis"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+ignore = ["E501"]

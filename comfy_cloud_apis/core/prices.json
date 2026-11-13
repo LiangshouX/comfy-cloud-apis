@@ -1,0 +1,83 @@
+{
+  "_comment": "价格表。checked 字段是核对日期，过期请自行复核官方价目表再改。per_second 单位为每秒输出价格。",
+  "providers": {
+    "MiniMax": {
+      "docs": "https://platform.minimaxi.com/document/Video%20Generation",
+      "models": {
+        "MiniMax-H3": {
+          "checked": "2026-11-09",
+          "source": "MiniMax 官方按量价目表",
+          "resolutions": {
+            "768p": {"currency": "USD", "per_second": 0.08},
+            "2k": {"currency": "USD", "per_second": 0.13}
+          }
+        },
+        "MiniMax-H3-Max": {
+          "checked": "2026-11-04",
+          "source": "MiniMax 官方按量价目表",
+          "resolutions": {
+            "768p": {"currency": "USD", "per_second": 0.08},
+            "480p": {"currency": "USD", "per_second": 0.05}
+          }
+        },
+        "MiniMax-H3-Highspeed": {
+          "checked": "2026-11-04",
+          "source": "MiniMax 官方按量价目表",
+          "resolutions": {
+            "768p": {"currency": "USD", "per_second": 0.06},
+            "480p": {"currency": "USD", "per_second": 0.04}
+          }
+        },
+        "MiniMax-H3-Lite": {
+          "checked": "2026-11-04",
+          "source": "MiniMax 官方按量价目表",
+          "resolutions": {
+            "768p": {"currency": "USD", "per_second": 0.04},
+            "480p": {"currency": "USD", "per_second": 0.025}
+          }
+        }
+      }
+    },
+    "Seedance": {
+      "docs": "https://docs.volcengine.com/docs/82379/2298881",
+      "models": {
+        "doubao-seedance-2-5-260628": {
+          "checked": "2026-11-13",
+          "source": "火山方舟官方文档（未取到逐档单价，先留 null；请自行补）",
+          "resolutions": {
+            "720p": {"currency": "CNY", "per_second": null},
+            "1080p": {"currency": "CNY", "per_second": null}
+          }
+        },
+        "doubao-seedance-2-0-fast-260128": {
+          "checked": "2026-11-13",
+          "source": "活动期折后价，非长期价，随时会变",
+          "resolutions": {
+            "720p": {"currency": "CNY", "per_second": 0.6}
+          }
+        }
+      }
+    },
+    "Qwen/Wan": {
+      "docs": "https://help.aliyun.com/zh/model-studio/video-generation-api-reference",
+      "models": {
+        "wan2.6-i2v-flash": {
+          "checked": "2026-11-13",
+          "source": "社区汇总（北京地域），请以控制台为准",
+          "resolutions": {
+            "720p": {"currency": "CNY", "per_second": 0.6},
+            "1080p": {"currency": "CNY", "per_second": 1.0}
+          }
+        },
+        "wan2.6-r2v-flash": {
+          "checked": "2026-11-13",
+          "source": "社区汇总（北京地域），请以控制台为准",
+          "resolutions": {
+            "720p": {"currency": "CNY", "per_second": 0.6},
+            "1080p": {"currency": "CNY", "per_second": 1.0}
+          }
+        }
+      }
+    }
+  }
+}

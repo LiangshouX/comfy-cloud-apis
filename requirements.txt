@@ -1,0 +1,2 @@
+# 本插件不需要额外依赖。
+# 使用的 aiohttp / numpy / torch / PIL 全部由 ComfyUI 自带。

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "shot_001",
+    "provider": "MiniMax",
+    "model": "MiniMax-H3",
+    "prompt": "A slow aerial reveal of a lighthouse in a storm, waves crashing against the rocks.",
+    "overall_soundscape": "Distant crashing waves and wind howling.",
+    "non_diegetic_music": "N/A",
+    "resolution": "768P",
+    "duration": 5,
+    "ratio": "16:9",
+    "seed": 42
+  },
+  {
+    "id": "shot_002",
+    "provider": "Seedance",
+    "model": "doubao-seedance-2-0-fast-260128",
+    "prompt": "近景，一位女性转头看向镜头并微笑，镜头缓慢推近，霓虹灯在潮湿路面反射。",
+    "generate_audio": true,
+    "resolution": "720p",
+    "duration": 5,
+    "ratio": "16:9"
+  }
+]

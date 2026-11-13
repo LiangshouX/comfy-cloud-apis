@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  lint-and-import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff pytest
+          # torch 用 CPU 轮子即可，体积小很多；ComfyUI 运行时自带这些依赖
+          python -m pip install aiohttp numpy pillow
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Ruff 检查
+        run: ruff check .
+
+      - name: 语法编译检查
+        run: python -m compileall -q comfy_cloud_apis __init__.py
+
+      - name: 跑测试
+        run: pytest -q tests/

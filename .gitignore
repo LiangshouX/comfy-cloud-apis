@@ -1,0 +1,32 @@
+# 凭据 —— 绝对不能入库
+*_credentials.json
+.env
+.env.*
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ComfyUI 产物
+output/
+input/
+temp/
+*.mp4
+*.png
+*.jpg
+*.jsonl
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 临时
+*.log
+*.tmp
