@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from typing import Any, Optional
+from typing import Optional
 
 from .media import ensure_dir, output_root
 
@@ -32,31 +32,60 @@ def _load_prices() -> dict:
     return _cache
 
 
-def estimate_cost(provider: str, model: str, resolution: str, duration: int) -> Optional[dict]:
-    """按 provider/model/分辨率 估算成本。价格缺失时返回 None（不瞎猜）。"""
+def estimate_cost(
+    provider: str,
+    model: str,
+    resolution: str = "",
+    duration: int = 0,
+    units: int = 0,
+) -> Optional[dict]:
+    """按 provider/model/分辨率 估算成本。价格缺失时返回 None（不瞎猜）。
+
+    支持两种计价：
+        * ``per_second`` —— 视频，按输出秒数计
+        * ``per_image``  —— 生图，按张数计
+    分辨率查不到时回退到该模型的 ``default`` 档。
+    """
     prices = _load_prices()
     prov = (prices.get("providers") or {}).get(provider) or {}
     entry = (prov.get("models") or {}).get(model)
     if not entry:
         return None
-    res = (entry.get("resolutions") or {}).get((resolution or "").lower()) or entry.get("resolutions", {}).get(
-        (resolution or "").upper()
+    resolutions = entry.get("resolutions") or {}
+    res = (
+        resolutions.get((resolution or "").lower())
+        or resolutions.get((resolution or "").upper())
+        or resolutions.get("default")
     )
     if not res:
         return None
-    per_second = res.get("per_second")
-    if per_second is None:
-        return None
+
     currency = res.get("currency", "USD")
-    total = round(float(per_second) * float(duration), 4)
-    return {
-        "currency": currency,
-        "per_second": per_second,
-        "duration": duration,
-        "estimated_total": total,
-        "checked": entry.get("checked", ""),
-        "source": entry.get("source", ""),
-    }
+    per_second = res.get("per_second")
+    per_image = res.get("per_image")
+
+    if per_second is not None:
+        total = round(float(per_second) * float(duration or 0), 4)
+        return {
+            "currency": currency,
+            "per_second": per_second,
+            "duration": duration,
+            "estimated_total": total,
+            "checked": entry.get("checked", ""),
+            "source": entry.get("source", ""),
+        }
+    if per_image is not None:
+        count = int(units or 0)
+        total = round(float(per_image) * count, 4)
+        return {
+            "currency": currency,
+            "per_image": per_image,
+            "images": count,
+            "estimated_total": total,
+            "checked": entry.get("checked", ""),
+            "source": entry.get("source", ""),
+        }
+    return None
 
 
 def usage_log_path() -> str:

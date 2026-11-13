@@ -6,7 +6,6 @@ import base64
 import io
 import os
 import time
-from typing import Optional
 
 try:
     import folder_paths
@@ -36,7 +35,7 @@ def provider_dir(provider: str, to_output: bool = True) -> str:
     return ensure_dir(os.path.join(root, "comfy_cloud_apis", provider.lower()))
 
 
-def tensor_to_data_uri(image_tensor: Optional[torch.Tensor], mime: str = "image/png") -> str:
+def tensor_to_data_uri(image_tensor, mime: str = "image/png") -> str:
     """[B,H,W,C] float tensor -> data URI。
 
     哪些厂商接受内联 base64：
@@ -47,6 +46,7 @@ def tensor_to_data_uri(image_tensor: Optional[torch.Tensor], mime: str = "image/
     if image_tensor is None:
         return ""
     import numpy as np
+    from PIL import Image
 
     t = image_tensor
     if len(t.shape) == 4:
@@ -69,6 +69,30 @@ def bytes_to_tensor(image_bytes: bytes, mode: str = "RGBA"):
     img = Image.open(io.BytesIO(image_bytes)).convert(mode)
     arr = np.array(img).astype(np.float32) / 255.0
     return torch.from_numpy(arr).unsqueeze(0)
+
+
+def sniff_image_format(data: bytes) -> tuple[str, str]:
+    """从图片字节猜出 (扩展名, MIME)。
+
+    三家返回的格式各不相同（MiniMax image-01 默认 JPEG、百炼返回 PNG、
+    Seedream 由 output_format 决定），而 URL 后缀并不可靠（OSS 链接常带
+    无扩展名的查询串），所以直接看魔数。
+    """
+    if not data:
+        return ".png", "image/png"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return ".png", "image/png"
+    if data[:3] == b"\xff\xd8\xff":
+        return ".jpg", "image/jpeg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return ".webp", "image/webp"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return ".gif", "image/gif"
+    if data[:4] == b"BM":
+        return ".bmp", "image/bmp"
+    if data[:4] in (b"II*\x00", b"MM\x00*"):
+        return ".tiff", "image/tiff"
+    return ".png", "image/png"
 
 
 def timestamped_name(prefix: str, ext: str = ".mp4") -> str:

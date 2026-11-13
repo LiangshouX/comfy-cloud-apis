@@ -153,6 +153,7 @@ class QwenWanProvider:
 
 
 class QwenWanNode(CloudVideoNodeBase):
+    IMPL = QwenWanProvider
     PROVIDER = PROVIDER
     KEY_ENV = QwenWanProvider.KEY_ENV
     FILE_KEY = QwenWanProvider.FILE_KEY
@@ -195,6 +196,7 @@ class QwenWanNode(CloudVideoNodeBase):
 
 
 class QwenWanTaskQueryNode(CloudTaskQueryNode):
+    IMPL = QwenWanProvider
     PROVIDER = PROVIDER
     KEY_ENV = QwenWanProvider.KEY_ENV
     FILE_KEY = QwenWanProvider.FILE_KEY

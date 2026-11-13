@@ -115,6 +115,26 @@ async def download_to(
     return dest_path
 
 
+async def download_bytes(
+    session: aiohttp.ClientSession,
+    url: str,
+    timeout: float = 300.0,
+    extra_headers: Optional[dict] = None,
+) -> bytes:
+    """把远程文件下载成字节。
+
+    图片体积小，直接进内存比落盘再读更简单，也方便**嗅探真实格式**
+    （各家返回的 URL 后缀与实际 MIME 经常对不上）。
+
+    同样**不附带任何鉴权头**。
+    """
+    req_timeout = aiohttp.ClientTimeout(total=timeout)
+    async with session.get(url, headers=extra_headers or {}, timeout=req_timeout) as resp:
+        if resp.status >= 400:
+            raise RuntimeError(f"下载图片失败 HTTP {resp.status}：{url[:200]}")
+        return await resp.read()
+
+
 def dig(data: Any, *paths, default=None):
     """容错取值：paths 依次尝试，返回第一个非 None 的值。
 

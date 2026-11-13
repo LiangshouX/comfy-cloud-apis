@@ -148,6 +148,7 @@ class MiniMaxProvider:
 
 
 class MiniMaxH3Node(CloudVideoNodeBase):
+    IMPL = MiniMaxProvider
     PROVIDER = PROVIDER
     KEY_ENV = MiniMaxProvider.KEY_ENV
     FILE_KEY = MiniMaxProvider.FILE_KEY
@@ -206,6 +207,7 @@ class MiniMaxH3Node(CloudVideoNodeBase):
 
 
 class MiniMaxH3TaskQueryNode(CloudTaskQueryNode):
+    IMPL = MiniMaxProvider
     PROVIDER = PROVIDER
     KEY_ENV = MiniMaxProvider.KEY_ENV
     FILE_KEY = MiniMaxProvider.FILE_KEY

@@ -27,7 +27,8 @@ jobs:
         run: ruff check .
 
       - name: 语法编译检查
-        run: python -m compileall -q comfy_cloud_apis __init__.py
+        run: python -m compileall -q comfy_cloud_apis __init__.py tests
 
       - name: 跑测试
+        # 其中 2 项需要 torch（已在上一步装 CPU 版），没有 torch 时会自动跳过
         run: pytest -q tests/

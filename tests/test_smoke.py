@@ -3,8 +3,6 @@
 这些测试无法替代真实 API 验证，但能挡住协议拼写错误与结构性回归。
 """
 
-import os
-
 import pytest
 
 from comfy_cloud_apis.core.credentials import resolve_key

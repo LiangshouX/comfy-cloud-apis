@@ -282,3 +282,235 @@ HTTP 层把状态码翻译成可执行动作，provider 可以覆盖：
 | 422 | 内容被安全策略拦截 |
 | 429 | 限流（**串行排队**） |
 | 5xx | 服务端错误，稍后重试 |
+
+---
+
+# 5. 生图接口（2026-11-13 补充）
+
+四家生图接口的**接口形态不一样**，这是最容易踩坑的地方：
+
+| 厂商 | 端点 | 同步/异步 | 必需请求头 |
+|---|---|---|---|
+| MiniMax | `POST {base}/v1/image_generation` | **同步** | — |
+| Seedream | `POST {base}/images/generations` | **同步** | — |
+| Qwen-Image | `POST {base}/api/v1/services/aigc/multimodal-generation/generation` | **同步** | — |
+| 通义万相 文生图 | `POST {base}/api/v1/services/aigc/text2image/image-synthesis` | **异步** | `X-DashScope-Async: enable` |
+
+base_url 沿用视频节点：MiniMax `https://api.minimax.chat`（国际 `api.minimaxi.chat`）、
+方舟 `https://ark.cn-beijing.volces.com/api/v3`、百炼 `https://dashscope.aliyuncs.com`
+（国际 `dashscope-intl.aliyuncs.com`，推荐业务空间专属域名）。
+
+---
+
+## 5.1 MiniMax image-01
+
+```http
+POST {base}/v1/image_generation
+```
+
+```json
+{
+  "model": "image-01",
+  "prompt": "A girl looking into the distance from a library window",
+  "aspect_ratio": "16:9",
+  "response_format": "url",
+  "n": 2,
+  "seed": 42,
+  "prompt_optimizer": false,
+  "aigc_watermark": false,
+  "subject_reference": [{"type": "character", "image_file": "https://.../person.jpg"}]
+}
+```
+
+响应：
+
+```json
+{"id": "03ff3cd0820949eb8a410056b5f21d38",
+ "data": {"image_urls": ["https://..."]},
+ "metadata": {"success_count": 1, "failed_count": 0},
+ "base_resp": {"status_code": 0, "status_msg": "success"}}
+```
+
+`response_format: "base64"` 时改成 `data.image_base64`（数组）。
+
+### ⚠️ 业务错误藏在 HTTP 200 里
+
+`base_resp.status_code` 非 0 就是失败，**必须单独检查**，否则会拿到"成功但没有图片"的空响应：
+
+| 码 | 含义 |
+|---|---|
+| 1008 | 余额不足 |
+| 1026 | 内容涉敏 |
+| 2013 | 参数异常 |
+
+### 参数约束
+
+| 参数 | 约束 |
+|---|---|
+| `prompt` | ≤ 1500 字符 |
+| `n` | 1–9 |
+| `aspect_ratio` | 1:1 / 16:9 / 4:3 / 3:2 / 2:3 / 3:4 / 9:16 / 21:9 |
+| `width` / `height` | 512–2048 且为 8 的倍数；**仅 image-01**；与 aspect_ratio 同时给时 aspect_ratio 优先 |
+| `subject_reference` | **只支持 1 张**；`image_file` 支持公网 URL 或 `data:image/...;base64,...` |
+| `style` | **仅 image-01-live**；`style_type` = 漫画/元气/中世纪/水彩，`style_weight` (0,1] |
+
+---
+
+## 5.2 Seedream（即梦同源）
+
+```http
+POST {base}/images/generations
+```
+
+```json
+{
+  "model": "doubao-seedream-4-0-250828",
+  "prompt": "一只戴着墨镜的橘猫，坐在海边，日落，超写实。",
+  "size": "2K",
+  "response_format": "url",
+  "sequential_image_generation": "auto",
+  "sequential_image_generation_options": {"max_images": 4},
+  "watermark": false,
+  "image": ["https://.../1.png", "https://.../2.png"]
+}
+```
+
+响应：
+
+```json
+{"model": "doubao-seedream-4-0-250828", "created": 1757321139,
+ "data": [{"url": "https://...", "size": "2048x2048"}],
+ "usage": {"generated_images": 1, "output_tokens": 16280, "total_tokens": 16280}}
+```
+
+`response_format: "b64_json"` 时 `data[].b64_json`。
+
+### 模型能力对照
+
+| 模型 ID | 文生图 | 参考图 | 组图 | 流式 | 联网搜索 | output_format | seed | guidance_scale | 分辨率 |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|---|
+| `doubao-seedream-5-0-lite-260128` | ✓ | ≤14 | ✓ | ✓ | ✓ | png/jpeg | — | — | 2K / 3K |
+| `doubao-seedream-5-0-260128` | ✓ | ≤14 | ✓ | ✓ | ✓ | png/jpeg | — | — | 2K / 3K |
+| `doubao-seedream-4-5-251128` | ✓ | ≤14 | ✓ | ✓ | — | — | — | — | 2K / 4K |
+| `doubao-seedream-4-0-250828` | ✓ | ≤10 | ✓ | ✓ | — | — | — | — | 1K / 2K / 4K |
+| `doubao-seedream-3-0-t2i-250415` | ✓ | **不支持** | — | — | — | — | ✓ | ✓ | 1024×1024 |
+
+### 约束
+
+- 「参考图数 + 生成张数 ≤ 15」
+- `image` 支持公网 URL、URL 数组、base64（`data:image/<格式>;base64,...`，格式名小写）
+- `size` 可写 `1K`/`2K`/`3K`/`4K` 或具体像素如 `2048x2048`
+- `optimize_prompt_options.mode` = `standard`（更准更慢）/ `fast`
+- 提示词建议 ≤ 300 汉字 / 600 英文单词
+- IPM 限流：500 张/分
+- 图片 URL **仅 24 小时有效**
+
+---
+
+## 5.3 千问 Qwen-Image（百炼 multimodal-generation）
+
+```http
+POST {base}/api/v1/services/aigc/multimodal-generation/generation
+```
+
+```json
+{
+  "model": "qwen-image-2.0-pro",
+  "input": {
+    "messages": [{
+      "role": "user",
+      "content": [{"text": "冬日北京的都市街景..."}]
+    }]
+  },
+  "parameters": {
+    "negative_prompt": "低分辨率,肢体畸形,过度光滑",
+    "size": "2048*2048",
+    "n": 1,
+    "prompt_extend": true,
+    "watermark": false,
+    "seed": 42
+  }
+}
+```
+
+响应：
+
+```json
+{"output": {"choices": [{"finish_reason": "stop",
+  "message": {"role": "assistant",
+              "content": [{"image": "https://dashscope-result-....png?Expires=..."}]}}]},
+ "usage": {"image_count": 1, "width": 2048, "height": 2048},
+ "request_id": "d0250a3d-..."}
+```
+
+### 模型对照
+
+| 模型 ID | 文生图 | 编辑 | 张数 | 分辨率 | 格式 |
+|---|:-:|:-:|---|---|---|
+| `qwen-image-3.0-pro` | ✓ | ✓ | 1–6 | 自由，总像素 512²–2048² | png |
+| `qwen-image-3.0` | ✓ | ✓ | 1–6 | 同上 | png |
+| `qwen-image-2.0-pro` | ✓ | ✓ | 1–6 | 同上 | png |
+| `qwen-image-2.0` | ✓ | ✓ | 1–6 | 同上 | png |
+| `qwen-image-max` | ✓ | — | **固定 1** | 1664×928 等预设比 | png |
+| `qwen-image-plus` | ✓ | — | **固定 1** | 同上 | png |
+| `qwen-image` | ✓ | — | **固定 1** | 同上 | png |
+
+### 约束
+
+- `size` 格式是 `宽*高`（不是 `16:9`）
+- `n` 对 max/plus/base 固定为 1，2.0 系列可到 6
+- 提示词：2.0 系列 ≤ 1300 Token，其他 ≤ 800 Token；**只支持一个 text**
+- `negative_prompt` ≤ 500 字符
+- **仅 `qwen-image` / `qwen-image-plus` 支持异步接口**，本项目走同步
+- **API 当前仅支持返回 URL，不支持 base64 输出**
+- 图片 URL **仅 24 小时有效**
+
+---
+
+## 5.4 通义万相 文生图（异步）
+
+```http
+POST {base}/api/v1/services/aigc/text2image/image-synthesis
+X-DashScope-Async: enable
+```
+
+```json
+{
+  "model": "wan2.6-t2i",
+  "input": {"prompt": "一只小猫在草地上奔跑，电影感，光影自然"},
+  "parameters": {
+    "size": "1024*1024",
+    "n": 1,
+    "prompt_extend": true,
+    "watermark": false,
+    "seed": 42
+  }
+}
+```
+
+创建响应：
+
+```json
+{"request_id": "5dbf9dc5-...", "output": {"task_id": "7277e20e-...", "task_status": "PENDING"}}
+```
+
+查询 `GET {base}/api/v1/tasks/{task_id}`：
+
+```json
+{"output": {"task_id": "...", "task_status": "SUCCEEDED",
+            "results": [{"url": "https://dashscope-result-....png?Expires=..."}]},
+ "usage": {"image_count": 1}}
+```
+
+### 模型
+
+`wan2.6-t2i` / `wan2.5-t2i-preview` / `wan2.2-t2i-plus` / `wan2.2-t2i-flash` /
+`wan2.1-t2i-plus` / `wan2.1-t2i-turbo` / `z-image-turbo`
+
+### 约束
+
+- `size` 格式 `宽*高`，宽高均在 [512, 1440]，最大 200 万像素
+- `n` 1–4
+- `prompt_extend` 开启会额外增加 3–4 秒
+- **纯文生图**（图像编辑走 Qwen-Image / Seedream 节点）
+- 状态词：`PENDING` / `RUNNING` / `SUCCEEDED` / `FAILED` / `CANCELED` / `UNKNOWN`

@@ -143,6 +143,7 @@ class SeedanceProvider:
 
 
 class SeedanceNode(CloudVideoNodeBase):
+    IMPL = SeedanceProvider
     PROVIDER = PROVIDER
     KEY_ENV = SeedanceProvider.KEY_ENV
     FILE_KEY = SeedanceProvider.FILE_KEY
@@ -182,6 +183,7 @@ class SeedanceNode(CloudVideoNodeBase):
 
 
 class SeedanceTaskQueryNode(CloudTaskQueryNode):
+    IMPL = SeedanceProvider
     PROVIDER = PROVIDER
     KEY_ENV = SeedanceProvider.KEY_ENV
     FILE_KEY = SeedanceProvider.FILE_KEY

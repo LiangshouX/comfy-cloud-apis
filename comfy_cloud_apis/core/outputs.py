@@ -7,8 +7,6 @@
 from __future__ import annotations
 
 import io
-import os
-from typing import Any
 
 
 def video_output(source: str | io.BytesIO):
