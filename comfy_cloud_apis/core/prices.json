@@ -8,46 +8,100 @@
           "checked": "2026-11-09",
           "source": "MiniMax 官方按量价目表",
           "resolutions": {
-            "768p": {"currency": "USD", "per_second": 0.08},
-            "2k": {"currency": "USD", "per_second": 0.13}
+            "768p": {
+              "currency": "USD",
+              "per_second": 0.08
+            },
+            "2k": {
+              "currency": "USD",
+              "per_second": 0.13
+            }
           }
         },
         "MiniMax-H3-Max": {
           "checked": "2026-11-04",
           "source": "MiniMax 官方按量价目表",
           "resolutions": {
-            "768p": {"currency": "USD", "per_second": 0.08},
-            "480p": {"currency": "USD", "per_second": 0.05}
+            "768p": {
+              "currency": "USD",
+              "per_second": 0.08
+            },
+            "480p": {
+              "currency": "USD",
+              "per_second": 0.05
+            }
           }
         },
         "MiniMax-H3-Highspeed": {
           "checked": "2026-11-04",
           "source": "MiniMax 官方按量价目表",
           "resolutions": {
-            "768p": {"currency": "USD", "per_second": 0.06},
-            "480p": {"currency": "USD", "per_second": 0.04}
+            "768p": {
+              "currency": "USD",
+              "per_second": 0.06
+            },
+            "480p": {
+              "currency": "USD",
+              "per_second": 0.04
+            }
           }
         },
         "MiniMax-H3-Lite": {
           "checked": "2026-11-04",
           "source": "MiniMax 官方按量价目表",
           "resolutions": {
-            "768p": {"currency": "USD", "per_second": 0.04},
-            "480p": {"currency": "USD", "per_second": 0.025}
+            "768p": {
+              "currency": "USD",
+              "per_second": 0.04
+            },
+            "480p": {
+              "currency": "USD",
+              "per_second": 0.025
+            }
           }
         },
         "image-01": {
           "checked": "2026-11-13",
-          "source": "社区汇总的 MiniMax 图像生成单价，请以官方价目表为准",
+          "source": "社区汇总的 MiniMax image-01 单价，请以官方价目表为准",
           "resolutions": {
-            "default": {"currency": "CNY", "per_image": 0.025}
+            "default": {
+              "currency": "CNY",
+              "per_image": 0.025
+            }
           }
         },
         "image-01-live": {
           "checked": "2026-11-13",
           "source": "社区汇总的 MiniMax 图像生成单价，请以官方价目表为准",
           "resolutions": {
-            "default": {"currency": "CNY", "per_image": 0.025}
+            "default": {
+              "currency": "CNY",
+              "per_image": 0.025
+            }
+          }
+        },
+        "MiniMax-H3-Image": {
+          "checked": "2026-11-14",
+          "source": "MiniMax 开放平台按量价目表（2026-11-11 核对）；按 1M token 计，不是按张计",
+          "resolutions": {
+            "default": {
+              "currency": "USD",
+              "input_token_price": 2.3,
+              "image_input_token_price": 1.5,
+              "output_token_price": 3.8
+            }
+          }
+        },
+        "MiniMax-H3-Image-Highspeed": {
+          "checked": "2026-11-14",
+          "source": "MiniMax 开放平台按量价目表（2026-11-11 核对）；按 1M token 计，不是按张计",
+          "resolutions": {
+            "default": {
+              "currency": "USD",
+              "input_token_price": 2.3,
+              "image_input_token_price": 3.0,
+              "output_token_price": 7.6
+            }
           }
         }
       }
@@ -59,15 +113,24 @@
           "checked": "2026-11-13",
           "source": "火山方舟官方文档（未取到逐档单价，先留 null；请自行补）",
           "resolutions": {
-            "720p": {"currency": "CNY", "per_second": null},
-            "1080p": {"currency": "CNY", "per_second": null}
+            "720p": {
+              "currency": "CNY",
+              "per_second": null
+            },
+            "1080p": {
+              "currency": "CNY",
+              "per_second": null
+            }
           }
         },
         "doubao-seedance-2-0-fast-260128": {
           "checked": "2026-11-13",
           "source": "活动期折后价，非长期价，随时会变",
           "resolutions": {
-            "720p": {"currency": "CNY", "per_second": 0.6}
+            "720p": {
+              "currency": "CNY",
+              "per_second": 0.6
+            }
           }
         }
       }
@@ -79,35 +142,50 @@
           "checked": "2026-11-13",
           "source": "社区汇总（火山方舟 Seedream 按张计价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "CNY", "per_image": 0.2}
+            "default": {
+              "currency": "CNY",
+              "per_image": 0.2
+            }
           }
         },
         "doubao-seedream-5-0-260128": {
           "checked": "2026-11-13",
           "source": "社区汇总（火山方舟 Seedream 按张计价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "CNY", "per_image": 0.2}
+            "default": {
+              "currency": "CNY",
+              "per_image": 0.2
+            }
           }
         },
         "doubao-seedream-4-5-251128": {
           "checked": "2026-11-13",
           "source": "社区汇总（火山方舟 Seedream 按张计价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "CNY", "per_image": 0.2}
+            "default": {
+              "currency": "CNY",
+              "per_image": 0.2
+            }
           }
         },
         "doubao-seedream-4-0-250828": {
           "checked": "2026-11-13",
           "source": "社区汇总（火山方舟 Seedream 按张计价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "CNY", "per_image": 0.2}
+            "default": {
+              "currency": "CNY",
+              "per_image": 0.2
+            }
           }
         },
         "doubao-seedream-3-0-t2i-250415": {
           "checked": "2026-11-13",
           "source": "社区汇总（火山方舟 Seedream 按张计价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "CNY", "per_image": 0.2}
+            "default": {
+              "currency": "CNY",
+              "per_image": 0.2
+            }
           }
         }
       }
@@ -119,114 +197,168 @@
           "checked": "2026-11-13",
           "source": "社区汇总（北京地域），请以控制台为准",
           "resolutions": {
-            "720p": {"currency": "CNY", "per_second": 0.6},
-            "1080p": {"currency": "CNY", "per_second": 1.0}
+            "720p": {
+              "currency": "CNY",
+              "per_second": 0.6
+            },
+            "1080p": {
+              "currency": "CNY",
+              "per_second": 1.0
+            }
           }
         },
         "wan2.6-r2v-flash": {
           "checked": "2026-11-13",
           "source": "社区汇总（北京地域），请以控制台为准",
           "resolutions": {
-            "720p": {"currency": "CNY", "per_second": 0.6},
-            "1080p": {"currency": "CNY", "per_second": 1.0}
+            "720p": {
+              "currency": "CNY",
+              "per_second": 0.6
+            },
+            "1080p": {
+              "currency": "CNY",
+              "per_second": 1.0
+            }
           }
         },
         "qwen-image-3.0-pro": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.05}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.05
+            }
           }
         },
         "qwen-image-3.0": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.03}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.03
+            }
           }
         },
         "qwen-image-2.0-pro": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.05}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.05
+            }
           }
         },
         "qwen-image-2.0": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.03}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.03
+            }
           }
         },
         "qwen-image-max": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.05}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.05
+            }
           }
         },
         "qwen-image-plus": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.03}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.03
+            }
           }
         },
         "qwen-image": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.03}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.03
+            }
           }
         },
         "wan2.6-t2i": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.05}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.05
+            }
           }
         },
         "wan2.5-t2i-preview": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.05}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.05
+            }
           }
         },
         "wan2.2-t2i-plus": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.05}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.05
+            }
           }
         },
         "wan2.2-t2i-flash": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.03}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.03
+            }
           }
         },
         "wan2.1-t2i-plus": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.05}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.05
+            }
           }
         },
         "wan2.1-t2i-turbo": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.03}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.03
+            }
           }
         },
         "z-image-turbo": {
           "checked": "2026-11-13",
           "source": "百炼官方模型页（国际地域价），请以控制台为准",
           "resolutions": {
-            "default": {"currency": "USD", "per_image": 0.02}
+            "default": {
+              "currency": "USD",
+              "per_image": 0.02
+            }
           }
         }
       }

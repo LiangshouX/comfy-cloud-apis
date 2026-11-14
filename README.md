@@ -80,7 +80,7 @@ export DASHSCOPE_API_KEY="你的key"
 
 | 厂商 | 节点 | 协议 | 同步/异步 | 模型 |
 |---|---|---|---|---|
-| **MiniMax** | `CloudImage_MiniMax` | `/v1/image_generation` | 同步 | `image-01` / `image-01-live` |
+| **MiniMax** | `CloudImage_MiniMax` | 旧 `/v1/image_generation` + 新 `/v1/images/generations` | 同步 | `image-01` / `image-01-live` / **`MiniMax-H3-Image`** / `MiniMax-H3-Image-Highspeed` |
 | **Seedream（即梦）** | `CloudImage_Seedream` | 方舟 v3 | 同步 | `doubao-seedream-5-0-260128` 等 5 个 |
 | **千问 Qwen-Image** | `CloudImage_Qwen` | 百炼 multimodal-generation | 同步 | `qwen-image-3.0-pro` / `qwen-image-2.0-pro` 等 7 个 |
 | **通义万相 Wan** | `CloudImage_WanT2I` | 百炼 image-synthesis | **异步** | `wan2.6-t2i` / `z-image-turbo` 等 7 个 |
@@ -139,14 +139,25 @@ python main.py --cpu          # 强制 CPU
 
 ### 图像
 
-| | MiniMax image-01 | Seedream | Qwen-Image | 通义万相 文生图 |
-|---|---|---|---|---|
-| 接口形态 | 同步 | 同步 | 同步 | **异步**（需 `X-DashScope-Async`） |
-| 参考图内联 base64 | ✅ `image_file` 支持 data URL | ✅ 明确支持 | ✅ content 里传 image | 不支持（纯文生图） |
-| 反向提示词 | — | — | ✅ `negative_prompt` | — |
-| 组图多张 | `n` (1–9) | `max_images` (1–15) | `n` (1–6) | `n` (1–4) |
-| 联网搜索 | — | ✅ 仅 5.0（`tools`） | — | — |
-| 结果有效期 | ⚠️ 24 小时 | ⚠️ 24 小时 | ⚠️ 24 小时 | ⚠️ 24 小时 |
+| | MiniMax H3-Image | MiniMax image-01 | Seedream | Qwen-Image | 通义万相 文生图 |
+|---|---|---|---|---|---|
+| 接口形态 | 同步 | 同步 | 同步 | 同步 | **异步**（需 `X-DashScope-Async`） |
+| 端点 | `/v1/images/generations` | `/v1/image_generation` | `/images/generations` | `multimodal-generation` | `image-synthesis` |
+| 参考图内联 base64 | ✅ `images[].image_url` | ✅ `subject_reference` | ✅ 明确支持 | ✅ content 里传 image | 不支持（纯文生图） |
+| 参考图张数 | **1–16** | **只支持 1** | ≤14 | 1 | — |
+| 反向提示词 | ❌ **传了直接被拒** | — | — | ✅ `negative_prompt` | — |
+| 提示词上限 | 32000 字符 | 1500 字符 | 建议 300 汉字 | 800–1300 Token | — |
+| 最大分辨率 | **16MP**（4096×4096） | 2048 | 4K | 2048×2048 | 1440×1440 |
+| 组图多张 | `n` (1–10) | `n` (1–9) | `max_images` (1–15) | `n` (1–6) | `n` (1–4) |
+| 联网搜索 | — | — | ✅ 仅 5.0（`tools`） | — | — |
+| 计价 | **按 token** | 按张 | 按张 | 按张 | 按张 |
+| 结果有效期 | ⚠️ 24 小时 | ⚠️ 24 小时 | ⚠️ 24 小时 | ⚠️ 24 小时 | ⚠️ 24 小时 |
+
+> ⚠️ **MiniMax 的两套生图接口不通用**：端点、参数、响应结构、模型族、计价方式全都不一样。
+> 详见 [`docs/PROVIDERS.md` 的 5.0 节](docs/PROVIDERS.md#50-minimax-有两套完全不同的生图接口2026-11-14-补充)。
+>
+> ⚠️ **H3-Image 端点不幂等**：请求发出后服务器会跑完并计费，即使你本地超时。
+> 重试 = 重复计费。本项目已把该模型的请求超时设为 720 秒（服务器上限 600 秒）。
 
 > ⚠️ **四家的图片链接都只有 24 小时有效期。** 本项目在任务成功后**立即下载到本地**，
 > 不依赖链接长期有效。

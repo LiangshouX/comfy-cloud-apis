@@ -285,7 +285,148 @@ HTTP 层把状态码翻译成可执行动作，provider 可以覆盖：
 
 ---
 
-# 5. 生图接口（2026-11-13 补充）
+# 5. 生图接口
+
+## ⚠️ 5.0 MiniMax 有两套完全不同的生图接口（2026-11-14 补充）
+
+这是 MiniMax 生图最容易踩的坑：**两套接口的端点、参数、响应结构、模型族全都不一样**，
+社区文档里经常混着写。
+
+| | 旧接口（image-01 系列） | 新接口（H3-Image 系列） |
+|---|---|---|
+| 文生图端点 | `POST {base}/v1/image_generation`（**单数**） | `POST {base}/v1/images/generations`（**复数**） |
+| 编辑端点 | 无（`subject_reference` 走同一端点） | `POST {base}/v1/images/edits` |
+| 模型 | `image-01` / `image-01-live` | `MiniMax-H3-Image` / `MiniMax-H3-Image-Highspeed` |
+| 响应 `data` | **对象**：`data.image_urls` | **数组**：`data[].url` |
+| 失败表达 | HTTP 200 + `base_resp.status_code != 0` | HTTP 200 + `data[i].error`（**逐项**） |
+| prompt 上限 | 1500 字符 | 32000 字符 |
+| n 上限 | 9 | 10 |
+| 参考图 | `subject_reference`，**只支持 1 张** | `images[].image_url`，**最多 16 张** |
+| 尺寸表达 | `aspect_ratio`（固定 8 个）或 `width`+`height`（512–2048，8 的倍数） | `size="WxH"` **或** `aspect_ratio`+`area`（三者互斥） |
+| 提示词增强 | `prompt_optimizer`（默认关） | 默认**开**，`disable_prompt_enhanced` 关闭 |
+| 计价 | 按张 | **按 token** |
+| 幂等性 | — | ❌ **不幂等**：超时也会计费，重试重复计费 |
+
+### 域名
+
+| 地域 | 域名 |
+|---|---|
+| 国内（推荐） | `https://api.minimax.cn` |
+| 国际 | `https://api.minimax.io` |
+| 旧国内 | `https://api.minimax.chat`（仍可用） |
+| 旧国际 | `https://api.minimaxi.chat`（仍可用） |
+
+### 新接口（H3-Image）
+
+```http
+POST {base}/v1/images/generations
+```
+
+```json
+{
+  "model": "MiniMax-H3-Image",
+  "prompt": "An orange cat lying on a windowsill basking in the sun",
+  "size": "2720x1536",
+  "n": 1,
+  "response_format": "url"
+}
+```
+
+或按比例 + 清晰度（**与 size 互斥**）：
+
+```json
+{"model": "MiniMax-H3-Image", "prompt": "...", "aspect_ratio": "16:9", "area": "2K"}
+```
+
+响应：
+
+```json
+{"created": 1792308678,
+ "data": [{"url": "https://.../output-0.jpg", "size": "2720x1536", "revised_prompt": "..."},
+          {"error": {"code": "1027", "message": "output image failed content safety check"}}],
+ "output_format": "jpeg",
+ "usage": {"generated_images": 1, "total_tokens": 7254,
+           "input_tokens": 3174, "output_tokens": 4080,
+           "input_tokens_details": {"text_tokens": 3174, "image_tokens": 0},
+           "output_tokens_details": {"image_tokens": 4080}},
+ "request_id": "021792308678142a2c883cf675b9804d"}
+```
+
+### ⚠️ 三个必须注意的点
+
+1. **端点不幂等**：请求一旦发出，服务器会跑完并计费，即使客户端超时或断开。
+   重试 = 重复生成 + 重复计费。→ 客户端超时必须 ≥600 秒（本项目设 720 秒）。
+2. **`size` 与 `aspect_ratio`/`area` 互斥**：设了 `size="WxH"` 再带 `aspect_ratio`
+   （连 `"auto"` 都不行）会返回 400。
+3. **`disable_prompt_enhanced=true` 时必须给尺寸**：`size` 或具体 `aspect_ratio`，
+   否则 400（因为 auto 依赖提示词增强来决定比例）。
+
+### 尺寸表（16MP 档）
+
+| 宽高比 | 2K | 4K（16MP） |
+|---|---|---|
+| 1:1 | 2048x2048 | 4096x4096 |
+| 4:3 / 3:4 | 2368x1760 / 1760x2368 | 4736x3552 / 3552x4736 |
+| 16:9 / 9:16 | 2720x1536 / 1536x2720 | 5472x3072 / 3072x5472 |
+| 21:9 | 3552x1184 / 1184x3552 | 7104x2368 / 2368x7104 |
+
+面积范围 655,360 – 20,000,000 px，宽高比 1:3 – 3:1。
+
+### 编辑端点
+
+```http
+POST {base}/v1/images/edits
+```
+
+```json
+{"model": "MiniMax-H3-Image",
+ "prompt": "Replace the cat in image 1 with the Shiba Inu in image 2",
+ "images": [{"image_url": "https://example.com/cat.jpg"}],
+ "size": "auto"}
+```
+
+`image_url` 支持公网 URL、`mm_file://{file_id}`、`data:image/<格式>;base64,...`。
+参考图 1–16 张，**总请求体 ≤ 64 MiB**（base64 约为原文件的 4/3，
+图片多时优先用 URL）。单文件 ≤ 64 MiB，宽高 [128, 8192]，比例 ≤ 4:1。
+
+编辑接口**总是**应用提示词增强，`disable_prompt_enhanced` 无效。
+
+### 硬约束（写错直接 400）
+
+| 参数 | 约束 |
+|---|---|
+| `num_inference_steps` | 只能 6 或省略 |
+| `guidance_scale` | 只能 1 或省略（模型无 CFG） |
+| `negative_prompt` | **不支持**，传了被拒 |
+| `seed` | 整数；配合 `generator_device=cpu` 可跨机器复现 |
+
+### 计价（2026-11-11 核对，按 1M token）
+
+| | 文本输入 | 图像输入 | 图像输出 |
+|---|---|---|---|
+| `MiniMax-H3-Image` | $2.30 | $1.50 | $3.80 |
+| `MiniMax-H3-Image-Highspeed` | $2.30 | $3.00 | $7.60 |
+
+官方给的单张示例价：
+
+| Size | Standard | Highspeed |
+|---|---|---|
+| 1K | $0.02179 | $0.03529 |
+| 2K | $0.02333 | $0.03622 |
+| 4K | $0.06879 | $0.13001 |
+
+人民币口径（国内开放平台）：1K ¥0.1430/张、2K ¥0.1531/张、
+4K ¥0.4522/张（首周折后 ¥0.2261）。
+
+> 因为按 token 计，**同样的分辨率成本是浮动的**——官方没公布"每张图多少 token"的公式，
+> 只有上表的经验值。精确成本以厂商账单为准。
+
+### H3-Image 本地部署门槛（供对照）
+
+权重 68.65GB（DiT）+ 66.7GB（H3 文本编码器）+ 2.34GB（图像 VAE）= **约 138GB**。
+单张消费级显卡跑不动——这也是走 API 路径的理由。
+
+
 
 四家生图接口的**接口形态不一样**，这是最容易踩坑的地方：
 
@@ -296,9 +437,12 @@ HTTP 层把状态码翻译成可执行动作，provider 可以覆盖：
 | Qwen-Image | `POST {base}/api/v1/services/aigc/multimodal-generation/generation` | **同步** | — |
 | 通义万相 文生图 | `POST {base}/api/v1/services/aigc/text2image/image-synthesis` | **异步** | `X-DashScope-Async: enable` |
 
-base_url 沿用视频节点：MiniMax `https://api.minimax.chat`（国际 `api.minimaxi.chat`）、
+base_url 沿用视频节点：MiniMax `https://api.minimax.cn`（国际 `https://api.minimax.io`，
+旧域名 `api.minimax.chat` / `api.minimaxi.chat` 仍可用）、
 方舟 `https://ark.cn-beijing.volces.com/api/v3`、百炼 `https://dashscope.aliyuncs.com`
 （国际 `dashscope-intl.aliyuncs.com`，推荐业务空间专属域名）。
+
+> MiniMax 视频与生图的 base_url 是同一套域名体系，详见 [5.0](#50-minimax-有两套完全不同的生图接口2026-11-14-补充)。
 
 ---
 

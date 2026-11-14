@@ -55,6 +55,10 @@ class CloudNodeCommon:
     POLL_INTERVAL_DEFAULT: int = 10
     MAX_WAIT_DEFAULT: int = 600
 
+    #: 单次 HTTP 请求超时（秒）。MiniMax H3-Image 服务器最多等 600 秒，
+    #: 且该端点**不幂等**（超时也会计费），超时给不够会造成重复计费。
+    REQUEST_TIMEOUT: float = 300.0
+
     #: provider 实现类：负责回答「请求体长什么样 / 结果在哪」这些问题。
     #: 节点类只需 ``IMPL = XxxProvider``，钩子由基类自动转发。
     IMPL: Optional[type] = None
@@ -410,7 +414,7 @@ class CloudImageNodeBase(CloudNodeCommon):
         resolved, base, headers = self._resolve(api_key, base_url)
         payload = self.build_payload(**kwargs)
 
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=300)) as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.REQUEST_TIMEOUT)) as session:
             resp = await self.create(session, base, headers, payload)
             task_id = self.task_id_of(resp)
             final = resp
@@ -475,6 +479,7 @@ class CloudImageNodeBase(CloudNodeCommon):
             str(kwargs.get("size", kwargs.get("resolution", ""))),
             0,
             units=len(results),
+            usage=usage,
         )
         log_usage(
             {

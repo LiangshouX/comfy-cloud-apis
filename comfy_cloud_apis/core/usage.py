@@ -38,12 +38,16 @@ def estimate_cost(
     resolution: str = "",
     duration: int = 0,
     units: int = 0,
+    usage: Optional[dict] = None,
 ) -> Optional[dict]:
     """按 provider/model/分辨率 估算成本。价格缺失时返回 None（不瞎猜）。
 
-    支持两种计价：
+    支持三种计价：
         * ``per_second`` —— 视频，按输出秒数计
         * ``per_image``  —— 生图，按张数计
+        * ``input_token_price`` / ``image_input_token_price`` / ``output_token_price``
+          —— 按 token 计（MiniMax H3-Image 是这种，需要传厂商返回的 usage）
+
     分辨率查不到时回退到该模型的 ``default`` 档。
     """
     prices = _load_prices()
@@ -63,6 +67,7 @@ def estimate_cost(
     currency = res.get("currency", "USD")
     per_second = res.get("per_second")
     per_image = res.get("per_image")
+    out_price = res.get("output_token_price")
 
     if per_second is not None:
         total = round(float(per_second) * float(duration or 0), 4)
@@ -85,7 +90,51 @@ def estimate_cost(
             "checked": entry.get("checked", ""),
             "source": entry.get("source", ""),
         }
+    if out_price is not None:
+        # 按 token 计：需要厂商返回的 usage 才能算准
+        u = usage or {}
+        text_in = _dig_num(u, "input_tokens_details", "text_tokens")
+        if not text_in:
+            text_in = _dig_num(u, "input_tokens")
+        img_in = _dig_num(u, "input_tokens_details", "image_tokens")
+        out_tokens = _dig_num(u, "output_tokens")
+        if not (text_in or img_in or out_tokens):
+            return None
+        in_price = float(res.get("input_token_price", 0) or 0)
+        img_in_price = float(res.get("image_input_token_price", 0) or 0)
+        total = round(
+            (text_in / 1e6) * in_price
+            + (img_in / 1e6) * img_in_price
+            + (out_tokens / 1e6) * float(out_price),
+            6,
+        )
+        return {
+            "currency": currency,
+            "input_tokens": text_in,
+            "image_input_tokens": img_in,
+            "output_tokens": out_tokens,
+            "input_token_price": in_price,
+            "image_input_token_price": img_in_price,
+            "output_token_price": out_price,
+            "estimated_total": total,
+            "checked": entry.get("checked", ""),
+            "source": entry.get("source", ""),
+        }
     return None
+
+
+def _dig_num(data: dict, *path, default: int = 0) -> int:
+    cur = data
+    for key in path:
+        if not isinstance(cur, dict):
+            return default
+        cur = cur.get(key)
+        if cur is None:
+            return default
+    try:
+        return int(cur)
+    except (TypeError, ValueError):
+        return default
 
 
 def usage_log_path() -> str:

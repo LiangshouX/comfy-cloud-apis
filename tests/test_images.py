@@ -30,7 +30,7 @@ def test_minimax_image_payload_t2i():
 def test_minimax_image_custom_size_replaces_aspect_ratio():
     # 官方规则：aspect_ratio 与 width/height 同时给时 aspect_ratio 优先，
     # 所以自定义尺寸时不应再下发 aspect_ratio。
-    p = mm_img.MiniMaxImageProvider.build_payload(prompt="x", width=1280, height=720)
+    p = mm_img.MiniMaxImageProvider.build_payload(prompt="x", size="1280x720")
     assert p["width"] == 1280 and p["height"] == 720
     assert "aspect_ratio" not in p
 
@@ -38,9 +38,11 @@ def test_minimax_image_custom_size_replaces_aspect_ratio():
 def test_minimax_image_rejects_bad_size():
     # 官方约束：512–2048 且必须是 8 的倍数
     with pytest.raises(ValueError):
-        mm_img.MiniMaxImageProvider.build_payload(prompt="x", width=1001, height=720)
+        mm_img.MiniMaxImageProvider.build_payload(prompt="x", size="1001x720")
     with pytest.raises(ValueError):
-        mm_img.MiniMaxImageProvider.build_payload(prompt="x", width=256, height=720)
+        mm_img.MiniMaxImageProvider.build_payload(prompt="x", size="256x720")
+    with pytest.raises(ValueError):
+        mm_img.MiniMaxImageProvider.build_payload(prompt="x", size="1280")
 
 
 def test_minimax_image_n_range():
@@ -402,3 +404,173 @@ def test_bytes_to_tensor_shape():
     t = bytes_to_tensor(data, mode="RGB")
     assert tuple(t.shape) == (1, 2, 2, 3)
     assert abs(float(t[0, 0, 0, 0]) - 10 / 255.0) < 1e-4
+
+
+# --------------------------------------------------------------------------- #
+# MiniMax H3-Image（新接口 /v1/images/generations）
+# --------------------------------------------------------------------------- #
+def test_h3_image_payload_defaults():
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="MiniMax-H3-Image", prompt="a cat", aspect_ratio="16:9", area="2K", n=1
+    )
+    assert p["model"] == "MiniMax-H3-Image"
+    assert p["aspect_ratio"] == "16:9"
+    assert p["area"] == "2K"
+    assert p["n"] == 1
+    assert "size" not in p, "给了 aspect_ratio 时不能同时给 size（官方会返回 400）"
+
+
+def test_h3_image_size_replaces_aspect_ratio():
+    # 官方：设了 size=WIDTHxHEIGHT 就不能设 aspect_ratio / area
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="MiniMax-H3-Image", prompt="a cat", size="2720x1536"
+    )
+    assert p["size"] == "2720x1536"
+    assert "aspect_ratio" not in p
+    assert "area" not in p
+
+
+def test_h3_image_disable_prompt_enhanced_requires_explicit_ratio():
+    with pytest.raises(ValueError):
+        mm_img.MiniMaxImageProvider.build_payload(
+            model="MiniMax-H3-Image", prompt="a cat", aspect_ratio="auto",
+            disable_prompt_enhanced=True,
+        )
+    # 给了具体比例就允许
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="MiniMax-H3-Image", prompt="a cat", aspect_ratio="3:2",
+        disable_prompt_enhanced=True,
+    )
+    assert p["disable_prompt_enhanced"] is True
+
+
+def test_h3_image_prompt_limit_is_32000():
+    mm_img.MiniMaxImageProvider.build_payload(model="MiniMax-H3-Image", prompt="x" * 32000)
+    with pytest.raises(ValueError):
+        mm_img.MiniMaxImageProvider.build_payload(model="MiniMax-H3-Image", prompt="x" * 32001)
+
+
+def test_legacy_image_prompt_limit_is_1500():
+    mm_img.MiniMaxImageProvider.build_payload(model="image-01", prompt="x" * 1500)
+    with pytest.raises(ValueError):
+        mm_img.MiniMaxImageProvider.build_payload(model="image-01", prompt="x" * 1501)
+
+
+def test_h3_image_n_range_is_10():
+    mm_img.MiniMaxImageProvider.build_payload(model="MiniMax-H3-Image", prompt="x", n=10)
+    with pytest.raises(ValueError):
+        mm_img.MiniMaxImageProvider.build_payload(model="MiniMax-H3-Image", prompt="x", n=11)
+
+
+def test_legacy_image_n_range_is_9():
+    mm_img.MiniMaxImageProvider.build_payload(model="image-01", prompt="x", n=9)
+    with pytest.raises(ValueError):
+        mm_img.MiniMaxImageProvider.build_payload(model="image-01", prompt="x", n=10)
+
+
+def test_h3_image_output_format_and_compression():
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="MiniMax-H3-Image", prompt="x", output_format="png"
+    )
+    assert p["output_format"] == "png"
+    assert "output_compression" not in p, "png 不受压缩参数影响"
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="MiniMax-H3-Image", prompt="x", output_format="webp", output_compression=80
+    )
+    assert p["output_compression"] == 80
+
+
+def test_h3_image_response_format_base64_maps_to_b64_json():
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="MiniMax-H3-Image", prompt="x", response_format="base64"
+    )
+    assert p["response_format"] == "b64_json"
+    # 旧接口原生就叫 base64
+    p2 = mm_img.MiniMaxImageProvider.build_payload(
+        model="image-01", prompt="x", response_format="base64"
+    )
+    assert p2["response_format"] == "base64"
+
+
+def test_h3_image_reference_uses_images_key():
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="MiniMax-H3-Image", prompt="x", reference_image_url="https://a/1.png"
+    )
+    assert p["images"] == [{"image_url": "https://a/1.png"}]
+    assert "subject_reference" not in p
+
+
+def test_legacy_reference_uses_subject_reference_and_only_one():
+    p = mm_img.MiniMaxImageProvider.build_payload(
+        model="image-01", prompt="x", reference_image_url="https://a/1.png"
+    )
+    assert p["subject_reference"][0]["type"] == "character"
+    with pytest.raises(ValueError):
+        mm_img.MiniMaxImageProvider.build_payload(
+            model="image-01", prompt="x",
+            reference_image_url="https://a/1.png,https://a/2.png",
+        )
+
+
+def test_endpoints_differ_between_two_families():
+    assert mm_img.MiniMaxImageProvider._endpoint("image-01", False) == "/v1/image_generation"
+    assert mm_img.MiniMaxImageProvider._endpoint("MiniMax-H3-Image", False) == "/v1/images/generations"
+    assert mm_img.MiniMaxImageProvider._endpoint("MiniMax-H3-Image", True) == "/v1/images/edits"
+
+
+def test_h3_image_results_of_is_array_and_skips_failed_items():
+    resp = {
+        "data": [
+            {"url": "https://x/0.jpg", "size": "2720x1536", "revised_prompt": "..."},
+            {"error": {"code": "1027", "message": "output image failed content safety check"}},
+            {"url": "https://x/2.jpg"},
+        ]
+    }
+    assert mm_img.MiniMaxImageProvider.results_of(resp) == [
+        {"url": "https://x/0.jpg"},
+        {"url": "https://x/2.jpg"},
+    ]
+
+
+def test_h3_image_usage_carries_tokens_and_revised_prompt():
+    resp = {
+        "data": [{"url": "https://x/0.jpg", "revised_prompt": "a better prompt"}],
+        "usage": {
+            "generated_images": 1,
+            "total_tokens": 7254,
+            "input_tokens": 3174,
+            "output_tokens": 4080,
+            "input_tokens_details": {"text_tokens": 3174, "image_tokens": 0},
+            "output_tokens_details": {"image_tokens": 4080},
+        },
+        "request_id": "abc",
+    }
+    u = mm_img.MiniMaxImageProvider.usage_of(resp)
+    assert u["output_tokens"] == 4080
+    assert u["revised_prompt"] == "a better prompt"
+    assert u["request_id"] == "abc"
+
+
+def test_h3_image_cost_is_calculated_from_tokens():
+    c = estimate_cost(
+        "MiniMax",
+        "MiniMax-H3-Image",
+        "",
+        0,
+        units=1,
+        usage={
+            "input_tokens": 3174,
+            "output_tokens": 4080,
+            "input_tokens_details": {"text_tokens": 3174, "image_tokens": 0},
+        },
+    )
+    assert c is not None
+    # 3174/1e6*2.30 + 4080/1e6*3.80
+    expected = 3174 / 1e6 * 2.30 + 4080 / 1e6 * 3.80
+    assert abs(c["estimated_total"] - expected) < 1e-6
+    assert c["output_tokens"] == 4080
+
+
+def test_h3_image_cost_is_none_without_usage():
+    # 没有厂商返回的 usage 就算不准，宁可返回 null 也不瞎猜
+    assert estimate_cost("MiniMax", "MiniMax-H3-Image", "", 0, units=1) is None
